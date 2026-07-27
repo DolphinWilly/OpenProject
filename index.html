@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Arcade</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: #00d4ff;
+        }
+
+        p.subtitle {
+            font-size: 1.1rem;
+            color: #aaa;
+            margin-bottom: 40px;
+        }
+
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 24px;
+            max-width: 900px;
+            width: 100%;
+        }
+
+        /* ─── Game Card Template ─────────────────────────────── */
+        .game-card {
+            position: relative;
+            display: block;
+            background: #16213e;
+            border-radius: 12px;
+            overflow: hidden;
+            text-decoration: none;
+            color: #eee;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 1px solid #0f3460;
+        }
+
+        .game-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0, 212, 255, 0.2);
+            border-color: #00d4ff;
+        }
+
+        .game-card .card-cover {
+            width: 100%;
+            aspect-ratio: 4 / 3;
+            display: block;
+            object-fit: cover;
+            background: #0f0f23;
+        }
+
+        .game-card .card-title {
+            padding: 14px 16px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            text-align: center;
+            color: #00d4ff;
+        }
+
+        /* Hover overlay with description */
+        .game-card .card-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(15, 15, 35, 0.92);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            opacity: 0;
+            transition: opacity 0.25s ease;
+        }
+
+        .game-card:hover .card-overlay {
+            opacity: 1;
+        }
+
+        .card-overlay .overlay-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #00d4ff;
+            margin-bottom: 12px;
+        }
+
+        .card-overlay .overlay-desc {
+            font-size: 0.95rem;
+            color: #ccc;
+            text-align: center;
+            line-height: 1.5;
+            margin-bottom: 16px;
+        }
+
+        .card-overlay .overlay-cta {
+            font-size: 0.85rem;
+            color: #00d4ff;
+            border: 1px solid #00d4ff;
+            border-radius: 20px;
+            padding: 6px 18px;
+            letter-spacing: 0.5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Game Arcade</h1>
+    <p class="subtitle">A collection of classic browser games. Hover to learn more, click to play!</p>
+
+    <div class="games-grid">
+
+        <!-- Game Card: Breakout -->
+        <a href="breakout/index.html" class="game-card">
+            <img src="breakout/cover.svg" alt="Breakout game screenshot" class="card-cover">
+            <div class="card-title">Breakout</div>
+            <div class="card-overlay">
+                <div class="overlay-title">Breakout</div>
+                <p class="overlay-desc">Use the paddle to bounce the ball and break all the bricks. A timeless classic!</p>
+                <span class="overlay-cta">Play Now</span>
+            </div>
+        </a>
+
+        <!-- To add a new game, copy this template:
+        <a href="GAME_FOLDER/index.html" class="game-card">
+            <img src="GAME_FOLDER/cover.svg" alt="GAME_NAME screenshot" class="card-cover">
+            <div class="card-title">GAME_NAME</div>
+            <div class="card-overlay">
+                <div class="overlay-title">GAME_NAME</div>
+                <p class="overlay-desc">Short description of the game.</p>
+                <span class="overlay-cta">Play Now</span>
+            </div>
+        </a>
+        -->
+
+    </div>
+</body>
+</html>

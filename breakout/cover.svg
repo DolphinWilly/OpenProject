@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" width="640" height="480">
+  <!-- Background -->
+  <rect width="640" height="480" fill="#0f0f23"/>
+
+  <!-- Bricks Row 1 - Red -->
+  <rect x="35" y="50" width="60" height="20" rx="4" fill="#ff6b6b"/>
+  <rect x="101" y="50" width="60" height="20" rx="4" fill="#ff6b6b"/>
+  <rect x="167" y="50" width="60" height="20" rx="4" fill="#ff6b6b"/>
+  <rect x="233" y="50" width="60" height="20" rx="4" fill="#ff6b6b"/>
+  <rect x="299" y="50" width="60" height="20" rx="4" fill="#ff6b6b"/>
+  <rect x="365" y="50" width="60" height="20" rx="4" fill="#ff6b6b"/>
+  <rect x="431" y="50" width="60" height="20" rx="4" fill="#ff6b6b"/>
+  <rect x="497" y="50" width="60" height="20" rx="4" fill="#ff6b6b"/>
+  <rect x="563" y="50" width="60" height="20" rx="4" fill="#ff6b6b"/>
+
+  <!-- Bricks Row 2 - Yellow -->
+  <rect x="35" y="76" width="60" height="20" rx="4" fill="#feca57"/>
+  <rect x="101" y="76" width="60" height="20" rx="4" fill="#feca57"/>
+  <rect x="167" y="76" width="60" height="20" rx="4" fill="#feca57"/>
+  <rect x="233" y="76" width="60" height="20" rx="4" fill="#feca57"/>
+  <rect x="299" y="76" width="60" height="20" rx="4" fill="#feca57"/>
+  <rect x="365" y="76" width="60" height="20" rx="4" fill="#feca57"/>
+  <rect x="431" y="76" width="60" height="20" rx="4" fill="#feca57"/>
+  <rect x="497" y="76" width="60" height="20" rx="4" fill="#feca57"/>
+  <rect x="563" y="76" width="60" height="20" rx="4" fill="#feca57"/>
+
+  <!-- Bricks Row 3 - Blue -->
+  <rect x="35" y="102" width="60" height="20" rx="4" fill="#48dbfb"/>
+  <rect x="101" y="102" width="60" height="20" rx="4" fill="#48dbfb"/>
+  <rect x="167" y="102" width="60" height="20" rx="4" fill="#48dbfb"/>
+  <rect x="233" y="102" width="60" height="20" rx="4" fill="#48dbfb"/>
+  <rect x="299" y="102" width="60" height="20" rx="4" fill="#48dbfb"/>
+  <rect x="365" y="102" width="60" height="20" rx="4" fill="#48dbfb"/>
+  <rect x="431" y="102" width="60" height="20" rx="4" fill="#48dbfb"/>
+  <rect x="497" y="102" width="60" height="20" rx="4" fill="#48dbfb"/>
+  <rect x="563" y="102" width="60" height="20" rx="4" fill="#48dbfb"/>
+
+  <!-- Bricks Row 4 - Pink -->
+  <rect x="35" y="128" width="60" height="20" rx="4" fill="#ff9ff3"/>
+  <rect x="101" y="128" width="60" height="20" rx="4" fill="#ff9ff3"/>
+  <rect x="167" y="128" width="60" height="20" rx="4" fill="#ff9ff3"/>
+  <rect x="233" y="128" width="60" height="20" rx="4" fill="#ff9ff3"/>
+  <rect x="299" y="128" width="60" height="20" rx="4" fill="#ff9ff3"/>
+  <rect x="365" y="128" width="60" height="20" rx="4" fill="#ff9ff3"/>
+  <rect x="431" y="128" width="60" height="20" rx="4" fill="#ff9ff3"/>
+  <rect x="497" y="128" width="60" height="20" rx="4" fill="#ff9ff3"/>
+  <rect x="563" y="128" width="60" height="20" rx="4" fill="#ff9ff3"/>
+
+  <!-- Bricks Row 5 - Blue accent -->
+  <rect x="35" y="154" width="60" height="20" rx="4" fill="#54a0ff"/>
+  <rect x="101" y="154" width="60" height="20" rx="4" fill="#54a0ff"/>
+  <rect x="167" y="154" width="60" height="20" rx="4" fill="#54a0ff"/>
+  <rect x="233" y="154" width="60" height="20" rx="4" fill="#54a0ff"/>
+  <rect x="299" y="154" width="60" height="20" rx="4" fill="#54a0ff"/>
+  <rect x="365" y="154" width="60" height="20" rx="4" fill="#54a0ff"/>
+  <rect x="431" y="154" width="60" height="20" rx="4" fill="#54a0ff"/>
+  <rect x="497" y="154" width="60" height="20" rx="4" fill="#54a0ff"/>
+  <rect x="563" y="154" width="60" height="20" rx="4" fill="#54a0ff"/>
+
+  <!-- Ball -->
+  <circle cx="320" cy="320" r="8" fill="#ffffff"/>
+
+  <!-- Paddle -->
+  <rect x="270" y="440" width="100" height="14" rx="7" fill="#00d4ff"/>
+</svg>

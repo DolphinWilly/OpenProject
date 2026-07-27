@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Breakout</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #1a1a2e;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #eee;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            margin-bottom: 12px;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            color: #00d4ff;
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            font-size: 1rem;
+            color: #aaa;
+        }
+
+        .stats span {
+            color: #fff;
+            font-weight: bold;
+        }
+
+        canvas {
+            background: #0f0f23;
+            border-radius: 8px;
+            border: 2px solid #0f3460;
+            display: block;
+            margin-top: 8px;
+        }
+
+        .controls-info {
+            margin-top: 12px;
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .overlay {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+        }
+
+        .overlay h2 {
+            font-size: 2rem;
+            color: #00d4ff;
+        }
+
+        .overlay p {
+            color: #aaa;
+            font-size: 1.1rem;
+        }
+
+        a.back-link {
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            color: #00d4ff;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        a.back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <a href="../index.html" class="back-link">&larr; Back to Arcade</a>
+
+    <div class="header">
+        <h1>Breakout</h1>
+        <div class="stats">
+            Score: <span id="score">0</span> &nbsp;|&nbsp; Lives: <span id="lives">3</span>
+        </div>
+    </div>
+
+    <canvas id="gameCanvas" width="640" height="480"></canvas>
+    <p class="controls-info">Arrow keys or A/D to move paddle &middot; Space to launch ball &middot; R to restart</p>
+
+    <script>
+    (function () {
+        // ─── CONFIGURATION ─────────────────────────────────────────
+        const CONFIG = {
+            canvasWidth: 640,
+            canvasHeight: 480,
+            paddleWidth: 100,
+            paddleHeight: 14,
+            paddleSpeed: 7,
+            paddleColor: '#00d4ff',
+            paddleRadius: 7,
+            ballRadius: 8,
+            ballSpeed: 5,
+            ballColor: '#ffffff',
+            brickRowCount: 5,
+            brickColumnCount: 9,
+            brickWidth: 60,
+            brickHeight: 20,
+            brickPadding: 6,
+            brickOffsetTop: 50,
+            brickOffsetLeft: 35,
+            brickColors: ['#ff6b6b', '#feca57', '#48dbfb', '#ff9ff3', '#54a0ff'],
+            lives: 3,
+            maxBallAngle: Math.PI / 3, // 60 degrees from vertical
+        };
+
+        // ─── STATE ─────────────────────────────────────────────────
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('score');
+        const livesEl = document.getElementById('lives');
+
+        let paddle, ball, bricks, score, lives, gameState;
+        let keys = {};
+
+        // gameState: 'waiting' | 'playing' | 'won' | 'lost'
+
+        // ─── INITIALIZATION ────────────────────────────────────────
+        function init() {
+            score = 0;
+            lives = CONFIG.lives;
+            gameState = 'waiting';
+            scoreEl.textContent = score;
+            livesEl.textContent = lives;
+
+            paddle = {
+                x: (CONFIG.canvasWidth - CONFIG.paddleWidth) / 2,
+                y: CONFIG.canvasHeight - 40,
+                width: CONFIG.paddleWidth,
+                height: CONFIG.paddleHeight,
+            };
+
+            resetBall();
+            createBricks();
+        }
+
+        function resetBall() {
+            ball = {
+                x: paddle.x + paddle.width / 2,
+                y: paddle.y - CONFIG.ballRadius - 1,
+                dx: 0,
+                dy: 0,
+                radius: CONFIG.ballRadius,
+                attached: true,
+            };
+        }
+
+        function launchBall() {
+            if (!ball.attached) return;
+            ball.attached = false;
+            // Launch at a slight random angle
+            const angle = (Math.random() - 0.5) * (Math.PI / 4); // -22.5 to 22.5 degrees
+            ball.dx = CONFIG.ballSpeed * Math.sin(angle);
+            ball.dy = -CONFIG.ballSpeed * Math.cos(angle);
+            gameState = 'playing';
+        }
+
+        function createBricks() {
+            bricks = [];
+            for (let row = 0; row < CONFIG.brickRowCount; row++) {
+                bricks[row] = [];
+                for (let col = 0; col < CONFIG.brickColumnCount; col++) {
+                    bricks[row][col] = {
+                        x: CONFIG.brickOffsetLeft + col * (CONFIG.brickWidth + CONFIG.brickPadding),
+                        y: CONFIG.brickOffsetTop + row * (CONFIG.brickHeight + CONFIG.brickPadding),
+                        width: CONFIG.brickWidth,
+                        height: CONFIG.brickHeight,
+                        alive: true,
+                        color: CONFIG.brickColors[row % CONFIG.brickColors.length],
+                    };
+                }
+            }
+        }
+
+        // ─── INPUT ─────────────────────────────────────────────────
+        document.addEventListener('keydown', function (e) {
+            keys[e.key] = true;
+            if (e.key === ' ' || e.key === 'Space') {
+                e.preventDefault();
+                if (gameState === 'waiting') launchBall();
+            }
+            if (e.key === 'r' || e.key === 'R') {
+                init();
+            }
+        });
+
+        document.addEventListener('keyup', function (e) {
+            keys[e.key] = false;
+        });
+
+        // ─── UPDATE ────────────────────────────────────────────────
+        function update() {
+            // Paddle movement
+            if (keys['ArrowLeft'] || keys['a'] || keys['A']) {
+                paddle.x -= CONFIG.paddleSpeed;
+            }
+            if (keys['ArrowRight'] || keys['d'] || keys['D']) {
+                paddle.x += CONFIG.paddleSpeed;
+            }
+
+            // Clamp paddle
+            if (paddle.x < 0) paddle.x = 0;
+            if (paddle.x + paddle.width > CONFIG.canvasWidth) {
+                paddle.x = CONFIG.canvasWidth - paddle.width;
+            }
+
+            // Ball attached to paddle
+            if (ball.attached) {
+                ball.x = paddle.x + paddle.width / 2;
+                ball.y = paddle.y - ball.radius - 1;
+                return;
+            }
+
+            if (gameState !== 'playing') return;
+
+            // Move ball
+            ball.x += ball.dx;
+            ball.y += ball.dy;
+
+            // Wall collisions (left/right)
+            if (ball.x - ball.radius <= 0) {
+                ball.x = ball.radius;
+                ball.dx = Math.abs(ball.dx);
+            }
+            if (ball.x + ball.radius >= CONFIG.canvasWidth) {
+                ball.x = CONFIG.canvasWidth - ball.radius;
+                ball.dx = -Math.abs(ball.dx);
+            }
+
+            // Top wall
+            if (ball.y - ball.radius <= 0) {
+                ball.y = ball.radius;
+                ball.dy = Math.abs(ball.dy);
+            }
+
+            // Bottom — lose a life
+            if (ball.y + ball.radius >= CONFIG.canvasHeight) {
+                lives--;
+                livesEl.textContent = lives;
+                if (lives <= 0) {
+                    gameState = 'lost';
+                } else {
+                    ball.attached = true;
+                    gameState = 'waiting';
+                    resetBall();
+                }
+                return;
+            }
+
+            // Paddle collision
+            if (
+                ball.dy > 0 &&
+                ball.y + ball.radius >= paddle.y &&
+                ball.y + ball.radius <= paddle.y + paddle.height &&
+                ball.x >= paddle.x &&
+                ball.x <= paddle.x + paddle.width
+            ) {
+                // Calculate bounce angle based on where ball hits paddle
+                const hitPos = (ball.x - paddle.x) / paddle.width; // 0 to 1
+                const angle = (hitPos - 0.5) * 2 * CONFIG.maxBallAngle; // -60 to +60 degrees
+                const speed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
+                ball.dx = speed * Math.sin(angle);
+                ball.dy = -speed * Math.cos(angle);
+                ball.y = paddle.y - ball.radius - 1;
+            }
+
+            // Brick collisions
+            for (let row = 0; row < CONFIG.brickRowCount; row++) {
+                for (let col = 0; col < CONFIG.brickColumnCount; col++) {
+                    const brick = bricks[row][col];
+                    if (!brick.alive) continue;
+
+                    if (
+                        ball.x + ball.radius > brick.x &&
+                        ball.x - ball.radius < brick.x + brick.width &&
+                        ball.y + ball.radius > brick.y &&
+                        ball.y - ball.radius < brick.y + brick.height
+                    ) {
+                        brick.alive = false;
+                        score++;
+                        scoreEl.textContent = score;
+
+                        // Determine which side was hit
+                        const overlapLeft = (ball.x + ball.radius) - brick.x;
+                        const overlapRight = (brick.x + brick.width) - (ball.x - ball.radius);
+                        const overlapTop = (ball.y + ball.radius) - brick.y;
+                        const overlapBottom = (brick.y + brick.height) - (ball.y - ball.radius);
+
+                        const minOverlapX = Math.min(overlapLeft, overlapRight);
+                        const minOverlapY = Math.min(overlapTop, overlapBottom);
+
+                        if (minOverlapX < minOverlapY) {
+                            ball.dx = -ball.dx;
+                        } else {
+                            ball.dy = -ball.dy;
+                        }
+
+                        // Check win
+                        if (score >= CONFIG.brickRowCount * CONFIG.brickColumnCount) {
+                            gameState = 'won';
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+
+        // ─── DRAW ──────────────────────────────────────────────────
+        function draw() {
+            // Clear
+            ctx.clearRect(0, 0, CONFIG.canvasWidth, CONFIG.canvasHeight);
+
+            // Draw bricks
+            for (let row = 0; row < CONFIG.brickRowCount; row++) {
+                for (let col = 0; col < CONFIG.brickColumnCount; col++) {
+                    const brick = bricks[row][col];
+                    if (!brick.alive) continue;
+                    ctx.fillStyle = brick.color;
+                    ctx.beginPath();
+                    roundRect(ctx, brick.x, brick.y, brick.width, brick.height, 4);
+                    ctx.fill();
+                }
+            }
+
+            // Draw paddle
+            ctx.fillStyle = CONFIG.paddleColor;
+            ctx.beginPath();
+            roundRect(ctx, paddle.x, paddle.y, paddle.width, paddle.height, CONFIG.paddleRadius);
+            ctx.fill();
+
+            // Draw ball
+            ctx.fillStyle = CONFIG.ballColor;
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Draw overlays
+            if (gameState === 'waiting' && ball.attached) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+                ctx.fillRect(0, 0, CONFIG.canvasWidth, CONFIG.canvasHeight);
+                ctx.fillStyle = '#fff';
+                ctx.font = '20px "Segoe UI", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('Press SPACE to launch', CONFIG.canvasWidth / 2, CONFIG.canvasHeight / 2);
+            }
+
+            if (gameState === 'won') {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+                ctx.fillRect(0, 0, CONFIG.canvasWidth, CONFIG.canvasHeight);
+                ctx.fillStyle = '#00d4ff';
+                ctx.font = 'bold 36px "Segoe UI", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('YOU WIN!', CONFIG.canvasWidth / 2, CONFIG.canvasHeight / 2 - 20);
+                ctx.fillStyle = '#aaa';
+                ctx.font = '18px "Segoe UI", sans-serif';
+                ctx.fillText('Press R to restart', CONFIG.canvasWidth / 2, CONFIG.canvasHeight / 2 + 20);
+            }
+
+            if (gameState === 'lost') {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+                ctx.fillRect(0, 0, CONFIG.canvasWidth, CONFIG.canvasHeight);
+                ctx.fillStyle = '#ff6b6b';
+                ctx.font = 'bold 36px "Segoe UI", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('GAME OVER', CONFIG.canvasWidth / 2, CONFIG.canvasHeight / 2 - 20);
+                ctx.fillStyle = '#aaa';
+                ctx.font = '18px "Segoe UI", sans-serif';
+                ctx.fillText('Press R to restart', CONFIG.canvasWidth / 2, CONFIG.canvasHeight / 2 + 20);
+            }
+        }
+
+        // Helper: draw rounded rectangle
+        function roundRect(ctx, x, y, w, h, r) {
+            ctx.moveTo(x + r, y);
+            ctx.lineTo(x + w - r, y);
+            ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+            ctx.lineTo(x + w, y + h - r);
+            ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+            ctx.lineTo(x + r, y + h);
+            ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+            ctx.lineTo(x, y + r);
+            ctx.quadraticCurveTo(x, y, x + r, y);
+            ctx.closePath();
+        }
+
+        // ─── GAME LOOP ────────────────────────────────────────────
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Start
+        init();
+        gameLoop();
+    })();
+    </script>
+</body>
+</html>
