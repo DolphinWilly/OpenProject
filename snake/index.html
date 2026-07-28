@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #1a1a2e;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #eee;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            margin-bottom: 12px;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            color: #4cd137;
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            font-size: 1rem;
+            color: #aaa;
+        }
+
+        .stats span {
+            color: #fff;
+            font-weight: bold;
+        }
+
+        canvas {
+            background: #0f0f23;
+            border-radius: 8px;
+            border: 2px solid #0f3460;
+            display: block;
+            margin-top: 8px;
+        }
+
+        .controls-info {
+            margin-top: 12px;
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        a.back-link {
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            color: #4cd137;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        a.back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <a href="../index.html" class="back-link">&larr; Back to Arcade</a>
+
+    <div class="header">
+        <h1>Snake</h1>
+        <div class="stats">
+            Score: <span id="score">0</span> &nbsp;|&nbsp; High Score: <span id="highscore">0</span>
+        </div>
+    </div>
+
+    <canvas id="gameCanvas" width="480" height="480"></canvas>
+    <p class="controls-info">Arrow keys to move &middot; Space to start / restart</p>
+
+    <script>
+    (function () {
+        // ─── CONFIGURATION ─────────────────────────────────────────
+        const CONFIG = {
+            canvasSize: 480,
+            gridSize: 20,       // number of cells per row/column
+            cellSize: 24,       // 480 / 20 = 24px per cell
+            initialSpeed: 150,  // ms per tick (lower = faster)
+            speedIncrease: 2,   // ms faster per fruit eaten
+            minSpeed: 60,       // fastest possible tick
+            snakeColor: '#4cd137',
+            snakeHeadColor: '#2ed573',
+            fruitColor: '#ff6b6b',
+            gridLineColor: 'rgba(255, 255, 255, 0.03)',
+        };
+
+        // ─── STATE ─────────────────────────────────────────────────
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('score');
+        const highscoreEl = document.getElementById('highscore');
+
+        let snake, direction, nextDirection, fruit, score, highScore, gameState, speed, tickTimer;
+
+        // gameState: 'idle' | 'playing' | 'over'
+        highScore = parseInt(localStorage.getItem('snake_highscore') || '0', 10);
+        highscoreEl.textContent = highScore;
+
+        // ─── INITIALIZATION ────────────────────────────────────────
+        function init() {
+            // Start snake in the middle, 3 segments long, moving right
+            const startX = Math.floor(CONFIG.gridSize / 2);
+            const startY = Math.floor(CONFIG.gridSize / 2);
+            snake = [
+                { x: startX, y: startY },
+                { x: startX - 1, y: startY },
+                { x: startX - 2, y: startY },
+            ];
+            direction = { x: 1, y: 0 };
+            nextDirection = { x: 1, y: 0 };
+            score = 0;
+            speed = CONFIG.initialSpeed;
+            scoreEl.textContent = score;
+            gameState = 'idle';
+            placeFruit();
+            draw();
+        }
+
+        function startGame() {
+            if (gameState === 'playing') return;
+            if (gameState === 'over') init();
+            gameState = 'playing';
+            tick();
+        }
+
+        function placeFruit() {
+            // Find a random cell not occupied by the snake
+            let pos;
+            do {
+                pos = {
+                    x: Math.floor(Math.random() * CONFIG.gridSize),
+                    y: Math.floor(Math.random() * CONFIG.gridSize),
+                };
+            } while (snake.some(seg => seg.x === pos.x && seg.y === pos.y));
+            fruit = pos;
+        }
+
+        // ─── INPUT ─────────────────────────────────────────────────
+        document.addEventListener('keydown', function (e) {
+            if (e.key === ' ') {
+                e.preventDefault();
+                startGame();
+                return;
+            }
+
+            // Prevent reversing direction (can't go directly opposite)
+            switch (e.key) {
+                case 'ArrowUp':
+                    if (direction.y !== 1) nextDirection = { x: 0, y: -1 };
+                    break;
+                case 'ArrowDown':
+                    if (direction.y !== -1) nextDirection = { x: 0, y: 1 };
+                    break;
+                case 'ArrowLeft':
+                    if (direction.x !== 1) nextDirection = { x: -1, y: 0 };
+                    break;
+                case 'ArrowRight':
+                    if (direction.x !== -1) nextDirection = { x: 1, y: 0 };
+                    break;
+            }
+        });
+
+        // ─── GAME TICK ─────────────────────────────────────────────
+        function tick() {
+            if (gameState !== 'playing') return;
+
+            direction = nextDirection;
+
+            // Calculate new head position
+            const head = snake[0];
+            const newHead = {
+                x: head.x + direction.x,
+                y: head.y + direction.y,
+            };
+
+            // Check wall collision
+            if (
+                newHead.x < 0 || newHead.x >= CONFIG.gridSize ||
+                newHead.y < 0 || newHead.y >= CONFIG.gridSize
+            ) {
+                gameOver();
+                return;
+            }
+
+            // Check self collision
+            if (snake.some(seg => seg.x === newHead.x && seg.y === newHead.y)) {
+                gameOver();
+                return;
+            }
+
+            // Move snake
+            snake.unshift(newHead);
+
+            // Check fruit
+            if (newHead.x === fruit.x && newHead.y === fruit.y) {
+                score++;
+                scoreEl.textContent = score;
+                speed = Math.max(CONFIG.minSpeed, speed - CONFIG.speedIncrease);
+                placeFruit();
+            } else {
+                snake.pop(); // remove tail if no fruit eaten
+            }
+
+            draw();
+
+            // Schedule next tick
+            tickTimer = setTimeout(tick, speed);
+        }
+
+        function gameOver() {
+            gameState = 'over';
+            clearTimeout(tickTimer);
+
+            // Update high score
+            if (score > highScore) {
+                highScore = score;
+                highscoreEl.textContent = highScore;
+                localStorage.setItem('snake_highscore', highScore.toString());
+            }
+
+            draw();
+        }
+
+        // ─── DRAW ──────────────────────────────────────────────────
+        function draw() {
+            ctx.clearRect(0, 0, CONFIG.canvasSize, CONFIG.canvasSize);
+
+            // Draw grid lines
+            ctx.strokeStyle = CONFIG.gridLineColor;
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= CONFIG.gridSize; i++) {
+                const pos = i * CONFIG.cellSize;
+                ctx.beginPath();
+                ctx.moveTo(pos, 0);
+                ctx.lineTo(pos, CONFIG.canvasSize);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(0, pos);
+                ctx.lineTo(CONFIG.canvasSize, pos);
+                ctx.stroke();
+            }
+
+            // Draw fruit
+            ctx.fillStyle = CONFIG.fruitColor;
+            ctx.beginPath();
+            const fruitCenterX = fruit.x * CONFIG.cellSize + CONFIG.cellSize / 2;
+            const fruitCenterY = fruit.y * CONFIG.cellSize + CONFIG.cellSize / 2;
+            ctx.arc(fruitCenterX, fruitCenterY, CONFIG.cellSize / 2 - 3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Draw snake
+            snake.forEach(function (seg, index) {
+                const x = seg.x * CONFIG.cellSize;
+                const y = seg.y * CONFIG.cellSize;
+                const padding = 1;
+
+                ctx.fillStyle = index === 0 ? CONFIG.snakeHeadColor : CONFIG.snakeColor;
+                ctx.beginPath();
+                roundRect(ctx, x + padding, y + padding, CONFIG.cellSize - padding * 2, CONFIG.cellSize - padding * 2, 4);
+                ctx.fill();
+            });
+
+            // Draw overlays
+            if (gameState === 'idle') {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+                ctx.fillRect(0, 0, CONFIG.canvasSize, CONFIG.canvasSize);
+                ctx.fillStyle = '#fff';
+                ctx.font = '22px "Segoe UI", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('Press SPACE to start', CONFIG.canvasSize / 2, CONFIG.canvasSize / 2);
+            }
+
+            if (gameState === 'over') {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+                ctx.fillRect(0, 0, CONFIG.canvasSize, CONFIG.canvasSize);
+                ctx.fillStyle = '#ff6b6b';
+                ctx.font = 'bold 36px "Segoe UI", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('GAME OVER', CONFIG.canvasSize / 2, CONFIG.canvasSize / 2 - 20);
+                ctx.fillStyle = '#aaa';
+                ctx.font = '18px "Segoe UI", sans-serif';
+                ctx.fillText('Score: ' + score + '  |  Press SPACE to restart', CONFIG.canvasSize / 2, CONFIG.canvasSize / 2 + 20);
+            }
+        }
+
+        // Helper: draw rounded rectangle
+        function roundRect(ctx, x, y, w, h, r) {
+            ctx.moveTo(x + r, y);
+            ctx.lineTo(x + w - r, y);
+            ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+            ctx.lineTo(x + w, y + h - r);
+            ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+            ctx.lineTo(x + r, y + h);
+            ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+            ctx.lineTo(x, y + r);
+            ctx.quadraticCurveTo(x, y, x + r, y);
+            ctx.closePath();
+        }
+
+        // Start
+        init();
+    })();
+    </script>
+</body>
+</html>
