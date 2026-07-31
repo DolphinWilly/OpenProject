@@ -80,44 +80,63 @@
     <div class="header">
         <h1>Snake</h1>
         <div class="stats">
-            Score: <span id="score">0</span> &nbsp;|&nbsp; High Score: <span id="highscore">0</span>
+            Score: <span id="score">0</span> &nbsp;|&nbsp; Best: <span id="bestScore">0</span>
         </div>
     </div>
 
     <canvas id="gameCanvas" width="480" height="480"></canvas>
-    <p class="controls-info">Arrow keys to move &middot; Space to start / restart</p>
+    <p class="controls-info">Arrow keys to move &middot; Space to start / restart &middot; Eat fruit to score, but don't idle!</p>
 
+    <script src="../auth/auth.js"></script>
     <script>
     (function () {
         // ─── CONFIGURATION ─────────────────────────────────────────
         const CONFIG = {
             canvasSize: 480,
-            gridSize: 20,       // number of cells per row/column
-            cellSize: 24,       // 480 / 20 = 24px per cell
-            initialSpeed: 150,  // ms per tick (lower = faster)
-            speedIncrease: 2,   // ms faster per fruit eaten
-            minSpeed: 60,       // fastest possible tick
+            gridSize: 20,
+            cellSize: 24,
+            speed: 150,             // constant ms per tick
             snakeColor: '#4cd137',
             snakeHeadColor: '#2ed573',
             fruitColor: '#ff6b6b',
             gridLineColor: 'rgba(255, 255, 255, 0.03)',
+            idlePenaltyThreshold: 40,  // steps without fruit before -1 point
         };
 
         // ─── STATE ─────────────────────────────────────────────────
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const scoreEl = document.getElementById('score');
-        const highscoreEl = document.getElementById('highscore');
+        const bestScoreEl = document.getElementById('bestScore');
 
-        let snake, direction, nextDirection, fruit, score, highScore, gameState, speed, tickTimer;
+        let snake, direction, nextDirection, fruit;
+        let score, gameState, tickTimer;
+        let fruitsEaten;          // how many fruits eaten this game (for incremental scoring)
+        let stepsSinceLastFruit;  // steps since last fruit eaten (for idle penalty)
 
         // gameState: 'idle' | 'playing' | 'over'
-        highScore = parseInt(localStorage.getItem('snake_highscore') || '0', 10);
-        highscoreEl.textContent = highScore;
+
+        // ─── BEST SCORE (read from user profile) ────────────────
+        function getBestScore() {
+            if (typeof Auth === 'undefined' || !Auth.isLoggedIn()) return 0;
+            var user = Auth.getCurrentUser();
+            var profile = Auth.getProfile(user.username);
+            if (!profile || !profile.gameHistory) return 0;
+            var best = 0;
+            profile.gameHistory.forEach(function (entry) {
+                if (entry.game === 'Snake' && entry.score > best) best = entry.score;
+            });
+            return best;
+        }
+
+        function refreshBestScore() {
+            bestScoreEl.textContent = getBestScore();
+        }
+
+        refreshBestScore();
 
         // ─── INITIALIZATION ────────────────────────────────────────
         function init() {
-            // Start snake in the middle, 3 segments long, moving right
             const startX = Math.floor(CONFIG.gridSize / 2);
             const startY = Math.floor(CONFIG.gridSize / 2);
             snake = [
@@ -128,7 +147,8 @@
             direction = { x: 1, y: 0 };
             nextDirection = { x: 1, y: 0 };
             score = 0;
-            speed = CONFIG.initialSpeed;
+            fruitsEaten = 0;
+            stepsSinceLastFruit = 0;
             scoreEl.textContent = score;
             gameState = 'idle';
             placeFruit();
@@ -143,7 +163,6 @@
         }
 
         function placeFruit() {
-            // Find a random cell not occupied by the snake
             let pos;
             do {
                 pos = {
@@ -162,7 +181,6 @@
                 return;
             }
 
-            // Prevent reversing direction (can't go directly opposite)
             switch (e.key) {
                 case 'ArrowUp':
                     if (direction.y !== 1) nextDirection = { x: 0, y: -1 };
@@ -185,14 +203,13 @@
 
             direction = nextDirection;
 
-            // Calculate new head position
             const head = snake[0];
             const newHead = {
                 x: head.x + direction.x,
                 y: head.y + direction.y,
             };
 
-            // Check wall collision
+            // Wall collision → game over (1 life)
             if (
                 newHead.x < 0 || newHead.x >= CONFIG.gridSize ||
                 newHead.y < 0 || newHead.y >= CONFIG.gridSize
@@ -201,7 +218,7 @@
                 return;
             }
 
-            // Check self collision
+            // Self collision → game over
             if (snake.some(seg => seg.x === newHead.x && seg.y === newHead.y)) {
                 gameOver();
                 return;
@@ -209,32 +226,43 @@
 
             // Move snake
             snake.unshift(newHead);
+            stepsSinceLastFruit++;
 
             // Check fruit
             if (newHead.x === fruit.x && newHead.y === fruit.y) {
-                score++;
+                fruitsEaten++;
+                // Incremental scoring: 1st fruit = 1pt, 2nd = 2pts, etc.
+                score += fruitsEaten;
+                stepsSinceLastFruit = 0;
                 scoreEl.textContent = score;
-                speed = Math.max(CONFIG.minSpeed, speed - CONFIG.speedIncrease);
                 placeFruit();
             } else {
-                snake.pop(); // remove tail if no fruit eaten
+                snake.pop();
+            }
+
+            // Idle penalty: -1 point for every 40 steps without eating
+            if (stepsSinceLastFruit > 0 && stepsSinceLastFruit % CONFIG.idlePenaltyThreshold === 0) {
+                score = Math.max(0, score - 1);
+                scoreEl.textContent = score;
             }
 
             draw();
 
-            // Schedule next tick
-            tickTimer = setTimeout(tick, speed);
+            // Schedule next tick (constant speed)
+            tickTimer = setTimeout(tick, CONFIG.speed);
         }
 
         function gameOver() {
             gameState = 'over';
             clearTimeout(tickTimer);
 
-            // Update high score
-            if (score > highScore) {
-                highScore = score;
-                highscoreEl.textContent = highScore;
-                localStorage.setItem('snake_highscore', highScore.toString());
+            // Save to user profile
+            if (typeof Auth !== 'undefined' && Auth.isLoggedIn()) {
+                Auth.addGameHistory({
+                    game: 'Snake',
+                    score: score,
+                });
+                refreshBestScore();
             }
 
             draw();
@@ -244,7 +272,7 @@
         function draw() {
             ctx.clearRect(0, 0, CONFIG.canvasSize, CONFIG.canvasSize);
 
-            // Draw grid lines
+            // Grid lines
             ctx.strokeStyle = CONFIG.gridLineColor;
             ctx.lineWidth = 1;
             for (let i = 0; i <= CONFIG.gridSize; i++) {
@@ -259,7 +287,7 @@
                 ctx.stroke();
             }
 
-            // Draw fruit
+            // Fruit
             ctx.fillStyle = CONFIG.fruitColor;
             ctx.beginPath();
             const fruitCenterX = fruit.x * CONFIG.cellSize + CONFIG.cellSize / 2;
@@ -267,7 +295,7 @@
             ctx.arc(fruitCenterX, fruitCenterY, CONFIG.cellSize / 2 - 3, 0, Math.PI * 2);
             ctx.fill();
 
-            // Draw snake
+            // Snake
             snake.forEach(function (seg, index) {
                 const x = seg.x * CONFIG.cellSize;
                 const y = seg.y * CONFIG.cellSize;
@@ -279,7 +307,7 @@
                 ctx.fill();
             });
 
-            // Draw overlays
+            // Overlays
             if (gameState === 'idle') {
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
                 ctx.fillRect(0, 0, CONFIG.canvasSize, CONFIG.canvasSize);
@@ -295,10 +323,13 @@
                 ctx.fillStyle = '#ff6b6b';
                 ctx.font = 'bold 36px "Segoe UI", sans-serif';
                 ctx.textAlign = 'center';
-                ctx.fillText('GAME OVER', CONFIG.canvasSize / 2, CONFIG.canvasSize / 2 - 20);
+                ctx.fillText('GAME OVER', CONFIG.canvasSize / 2, CONFIG.canvasSize / 2 - 30);
+                ctx.fillStyle = '#fff';
+                ctx.font = '22px "Segoe UI", sans-serif';
+                ctx.fillText('Score: ' + score, CONFIG.canvasSize / 2, CONFIG.canvasSize / 2 + 10);
                 ctx.fillStyle = '#aaa';
-                ctx.font = '18px "Segoe UI", sans-serif';
-                ctx.fillText('Score: ' + score + '  |  Press SPACE to restart', CONFIG.canvasSize / 2, CONFIG.canvasSize / 2 + 20);
+                ctx.font = '16px "Segoe UI", sans-serif';
+                ctx.fillText('Press SPACE to play again', CONFIG.canvasSize / 2, CONFIG.canvasSize / 2 + 40);
             }
         }
 

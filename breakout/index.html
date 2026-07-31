@@ -60,25 +60,6 @@
             color: #666;
         }
 
-        .overlay {
-            position: absolute;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 16px;
-        }
-
-        .overlay h2 {
-            font-size: 2rem;
-            color: #00d4ff;
-        }
-
-        .overlay p {
-            color: #aaa;
-            font-size: 1.1rem;
-        }
-
         a.back-link {
             position: fixed;
             top: 16px;
@@ -99,13 +80,14 @@
     <div class="header">
         <h1>Breakout</h1>
         <div class="stats">
-            Score: <span id="score">0</span> &nbsp;|&nbsp; Lives: <span id="lives">3</span>
+            Score: <span id="score">0</span> &nbsp;|&nbsp; Best: <span id="bestScore">0</span>
         </div>
     </div>
 
     <canvas id="gameCanvas" width="640" height="480"></canvas>
-    <p class="controls-info">Arrow keys or A/D to move paddle &middot; Space to launch ball &middot; R to restart</p>
+    <p class="controls-info">Arrow keys or A/D to move paddle &middot; Space to launch / restart</p>
 
+    <script src="../auth/auth.js"></script>
     <script>
     (function () {
         // ─── CONFIGURATION ─────────────────────────────────────────
@@ -118,7 +100,8 @@
             paddleColor: '#00d4ff',
             paddleRadius: 7,
             ballRadius: 8,
-            ballSpeed: 5,
+            baseBallSpeed: 3,       // 60% of original 5 → starts at 3
+            speedBoostPerRow: 0.2,  // +20% per cleared row
             ballColor: '#ffffff',
             brickRowCount: 5,
             brickColumnCount: 9,
@@ -128,17 +111,18 @@
             brickOffsetTop: 50,
             brickOffsetLeft: 35,
             brickColors: ['#ff6b6b', '#feca57', '#48dbfb', '#ff9ff3', '#54a0ff'],
-            lives: 3,
-            maxBallAngle: Math.PI / 3, // 60 degrees from vertical
+            maxBallAngle: Math.PI / 3,
         };
 
         // ─── STATE ─────────────────────────────────────────────────
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const scoreEl = document.getElementById('score');
-        const livesEl = document.getElementById('lives');
+        const bestScoreEl = document.getElementById('bestScore');
 
-        let paddle, ball, bricks, score, lives, gameState;
+        let paddle, ball, bricks, score, gameState;
+        let clearedRows, pointsPerBrick, currentBallSpeed;
+        let totalBricksAlive;
         let keys = {};
 
         // gameState: 'waiting' | 'playing' | 'won' | 'lost'
@@ -146,10 +130,12 @@
         // ─── INITIALIZATION ────────────────────────────────────────
         function init() {
             score = 0;
-            lives = CONFIG.lives;
+            clearedRows = 0;
+            pointsPerBrick = 1;
+            currentBallSpeed = CONFIG.baseBallSpeed;
+            totalBricksAlive = CONFIG.brickRowCount * CONFIG.brickColumnCount;
             gameState = 'waiting';
             scoreEl.textContent = score;
-            livesEl.textContent = lives;
 
             paddle = {
                 x: (CONFIG.canvasWidth - CONFIG.paddleWidth) / 2,
@@ -176,10 +162,9 @@
         function launchBall() {
             if (!ball.attached) return;
             ball.attached = false;
-            // Launch at a slight random angle
-            const angle = (Math.random() - 0.5) * (Math.PI / 4); // -22.5 to 22.5 degrees
-            ball.dx = CONFIG.ballSpeed * Math.sin(angle);
-            ball.dy = -CONFIG.ballSpeed * Math.cos(angle);
+            const angle = (Math.random() - 0.5) * (Math.PI / 4);
+            ball.dx = currentBallSpeed * Math.sin(angle);
+            ball.dy = -currentBallSpeed * Math.cos(angle);
             gameState = 'playing';
         }
 
@@ -200,15 +185,65 @@
             }
         }
 
+        // ─── SCORING LOGIC ─────────────────────────────────────────
+        // Count how many complete rows have been cleared.
+        // We maintain a cached count and recheck only when a brick is destroyed.
+        function countClearedRows() {
+            let count = 0;
+            for (let row = 0; row < CONFIG.brickRowCount; row++) {
+                let rowCleared = true;
+                for (let col = 0; col < CONFIG.brickColumnCount; col++) {
+                    if (bricks[row][col].alive) {
+                        rowCleared = false;
+                        break;
+                    }
+                }
+                if (rowCleared) count++;
+            }
+            return count;
+        }
+
+        function onBrickDestroyed() {
+            // Add points based on current multiplier
+            score += pointsPerBrick;
+            scoreEl.textContent = score;
+            totalBricksAlive--;
+
+            // Check if a new row has been fully cleared
+            const newClearedRows = countClearedRows();
+            if (newClearedRows > clearedRows) {
+                clearedRows = newClearedRows;
+                pointsPerBrick = 1 + clearedRows;
+
+                // Increase ball speed by 20% per cleared row
+                currentBallSpeed = CONFIG.baseBallSpeed * (1 + clearedRows * CONFIG.speedBoostPerRow);
+
+                // Apply new speed to current ball direction
+                const currentSpeed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
+                if (currentSpeed > 0) {
+                    const ratio = currentBallSpeed / currentSpeed;
+                    ball.dx *= ratio;
+                    ball.dy *= ratio;
+                }
+            }
+
+            // Check win
+            if (totalBricksAlive <= 0) {
+                gameState = 'won';
+                saveScore();
+            }
+        }
+
         // ─── INPUT ─────────────────────────────────────────────────
         document.addEventListener('keydown', function (e) {
             keys[e.key] = true;
-            if (e.key === ' ' || e.key === 'Space') {
+            if (e.key === ' ') {
                 e.preventDefault();
-                if (gameState === 'waiting') launchBall();
-            }
-            if (e.key === 'r' || e.key === 'R') {
-                init();
+                if (gameState === 'waiting') {
+                    launchBall();
+                } else if (gameState === 'won' || gameState === 'lost') {
+                    init();
+                }
             }
         });
 
@@ -261,17 +296,10 @@
                 ball.dy = Math.abs(ball.dy);
             }
 
-            // Bottom — lose a life
+            // Bottom — game over (1 life only)
             if (ball.y + ball.radius >= CONFIG.canvasHeight) {
-                lives--;
-                livesEl.textContent = lives;
-                if (lives <= 0) {
-                    gameState = 'lost';
-                } else {
-                    ball.attached = true;
-                    gameState = 'waiting';
-                    resetBall();
-                }
+                gameState = 'lost';
+                saveScore();
                 return;
             }
 
@@ -283,12 +311,10 @@
                 ball.x >= paddle.x &&
                 ball.x <= paddle.x + paddle.width
             ) {
-                // Calculate bounce angle based on where ball hits paddle
-                const hitPos = (ball.x - paddle.x) / paddle.width; // 0 to 1
-                const angle = (hitPos - 0.5) * 2 * CONFIG.maxBallAngle; // -60 to +60 degrees
-                const speed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
-                ball.dx = speed * Math.sin(angle);
-                ball.dy = -speed * Math.cos(angle);
+                const hitPos = (ball.x - paddle.x) / paddle.width;
+                const angle = (hitPos - 0.5) * 2 * CONFIG.maxBallAngle;
+                ball.dx = currentBallSpeed * Math.sin(angle);
+                ball.dy = -currentBallSpeed * Math.cos(angle);
                 ball.y = paddle.y - ball.radius - 1;
             }
 
@@ -305,8 +331,6 @@
                         ball.y - ball.radius < brick.y + brick.height
                     ) {
                         brick.alive = false;
-                        score++;
-                        scoreEl.textContent = score;
 
                         // Determine which side was hit
                         const overlapLeft = (ball.x + ball.radius) - brick.x;
@@ -323,10 +347,7 @@
                             ball.dy = -ball.dy;
                         }
 
-                        // Check win
-                        if (score >= CONFIG.brickRowCount * CONFIG.brickColumnCount) {
-                            gameState = 'won';
-                        }
+                        onBrickDestroyed();
                         break;
                     }
                 }
@@ -335,7 +356,6 @@
 
         // ─── DRAW ──────────────────────────────────────────────────
         function draw() {
-            // Clear
             ctx.clearRect(0, 0, CONFIG.canvasWidth, CONFIG.canvasHeight);
 
             // Draw bricks
@@ -378,10 +398,13 @@
                 ctx.fillStyle = '#00d4ff';
                 ctx.font = 'bold 36px "Segoe UI", sans-serif';
                 ctx.textAlign = 'center';
-                ctx.fillText('YOU WIN!', CONFIG.canvasWidth / 2, CONFIG.canvasHeight / 2 - 20);
+                ctx.fillText('YOU WIN!', CONFIG.canvasWidth / 2, CONFIG.canvasHeight / 2 - 30);
+                ctx.fillStyle = '#fff';
+                ctx.font = '22px "Segoe UI", sans-serif';
+                ctx.fillText('Score: ' + score, CONFIG.canvasWidth / 2, CONFIG.canvasHeight / 2 + 10);
                 ctx.fillStyle = '#aaa';
-                ctx.font = '18px "Segoe UI", sans-serif';
-                ctx.fillText('Press R to restart', CONFIG.canvasWidth / 2, CONFIG.canvasHeight / 2 + 20);
+                ctx.font = '16px "Segoe UI", sans-serif';
+                ctx.fillText('Press SPACE to play again', CONFIG.canvasWidth / 2, CONFIG.canvasHeight / 2 + 40);
             }
 
             if (gameState === 'lost') {
@@ -390,10 +413,13 @@
                 ctx.fillStyle = '#ff6b6b';
                 ctx.font = 'bold 36px "Segoe UI", sans-serif';
                 ctx.textAlign = 'center';
-                ctx.fillText('GAME OVER', CONFIG.canvasWidth / 2, CONFIG.canvasHeight / 2 - 20);
+                ctx.fillText('GAME OVER', CONFIG.canvasWidth / 2, CONFIG.canvasHeight / 2 - 30);
+                ctx.fillStyle = '#fff';
+                ctx.font = '22px "Segoe UI", sans-serif';
+                ctx.fillText('Score: ' + score, CONFIG.canvasWidth / 2, CONFIG.canvasHeight / 2 + 10);
                 ctx.fillStyle = '#aaa';
-                ctx.font = '18px "Segoe UI", sans-serif';
-                ctx.fillText('Press R to restart', CONFIG.canvasWidth / 2, CONFIG.canvasHeight / 2 + 20);
+                ctx.font = '16px "Segoe UI", sans-serif';
+                ctx.fillText('Press SPACE to play again', CONFIG.canvasWidth / 2, CONFIG.canvasHeight / 2 + 40);
             }
         }
 
@@ -409,6 +435,36 @@
             ctx.lineTo(x, y + r);
             ctx.quadraticCurveTo(x, y, x + r, y);
             ctx.closePath();
+        }
+
+        // ─── BEST SCORE (read from user profile) ────────────────
+        function getBestScore() {
+            if (typeof Auth === 'undefined' || !Auth.isLoggedIn()) return 0;
+            var user = Auth.getCurrentUser();
+            var profile = Auth.getProfile(user.username);
+            if (!profile || !profile.gameHistory) return 0;
+            var best = 0;
+            profile.gameHistory.forEach(function (entry) {
+                if (entry.game === 'Breakout' && entry.score > best) best = entry.score;
+            });
+            return best;
+        }
+
+        function refreshBestScore() {
+            bestScoreEl.textContent = getBestScore();
+        }
+
+        refreshBestScore();
+
+        // ─── SAVE SCORE ───────────────────────────────────────────
+        function saveScore() {
+            if (typeof Auth !== 'undefined' && Auth.isLoggedIn()) {
+                Auth.addGameHistory({
+                    game: 'Breakout',
+                    score: score,
+                });
+                refreshBestScore();
+            }
         }
 
         // ─── GAME LOOP ────────────────────────────────────────────
