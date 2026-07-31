@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log In — Game Arcade</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #1a1a2e;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #eee;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .auth-card {
+            background: #16213e;
+            border: 1px solid #0f3460;
+            border-radius: 12px;
+            padding: 36px 32px;
+            width: 100%;
+            max-width: 420px;
+        }
+
+        .auth-card h1 {
+            color: #00d4ff;
+            font-size: 1.6rem;
+            margin-bottom: 6px;
+        }
+
+        .auth-card .subtitle {
+            color: #aaa;
+            font-size: 0.9rem;
+            margin-bottom: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            color: #aaa;
+            margin-bottom: 6px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px 14px;
+            background: #0f0f23;
+            border: 1px solid #0f3460;
+            border-radius: 8px;
+            color: #eee;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus {
+            border-color: #00d4ff;
+        }
+
+        .error-msg {
+            background: rgba(255, 107, 107, 0.1);
+            border: 1px solid #ff6b6b;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 0.85rem;
+            color: #ff6b6b;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background: #00d4ff;
+            color: #1a1a2e;
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background: #00b8e6;
+        }
+
+        .footer-link {
+            text-align: center;
+            margin-top: 18px;
+            font-size: 0.85rem;
+            color: #aaa;
+        }
+
+        .footer-link a {
+            color: #00d4ff;
+            text-decoration: none;
+        }
+
+        .footer-link a:hover {
+            text-decoration: underline;
+        }
+
+        a.back-link {
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            color: #00d4ff;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        a.back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <a href="../index.html" class="back-link">&larr; Back to Arcade</a>
+
+    <div class="auth-card">
+        <h1>Log In</h1>
+        <p class="subtitle">Welcome back! Enter your credentials.</p>
+
+        <div class="error-msg" id="errorMsg"></div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="username" placeholder="Your username" autocomplete="username" required>
+            </div>
+
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="password" placeholder="Your password" autocomplete="current-password" required>
+            </div>
+
+            <button type="submit" class="btn">Log In</button>
+        </form>
+
+        <p class="footer-link">Don't have an account? <a href="signup.html">Create one</a></p>
+    </div>
+
+    <script src="auth.js"></script>
+    <script>
+    (function () {
+        // If already logged in, redirect to portal
+        if (Auth.isLoggedIn()) {
+            window.location.href = '../index.html';
+            return;
+        }
+
+        const form = document.getElementById('loginForm');
+        const errorMsg = document.getElementById('errorMsg');
+
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            errorMsg.style.display = 'none';
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            const result = Auth.login(username, password);
+
+            if (result.success) {
+                window.location.href = '../index.html';
+            } else {
+                errorMsg.textContent = result.error;
+                errorMsg.style.display = 'block';
+            }
+        });
+    })();
+    </script>
+</body>
+</html>

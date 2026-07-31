@@ -118,10 +118,78 @@
             padding: 6px 18px;
             letter-spacing: 0.5px;
         }
+
+        /* ─── User Bar ───────────────────────────────────────── */
+        .user-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding: 12px 24px;
+            background: rgba(15, 15, 35, 0.95);
+            border-bottom: 1px solid #0f3460;
+            z-index: 100;
+        }
+
+        .user-bar .user-greeting {
+            font-size: 0.9rem;
+            color: #aaa;
+            margin-right: 16px;
+        }
+
+        .user-bar .user-greeting strong {
+            color: #00d4ff;
+        }
+
+        .user-bar .btn-auth {
+            padding: 6px 16px;
+            font-size: 0.85rem;
+            border-radius: 20px;
+            text-decoration: none;
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+        }
+
+        .btn-auth.btn-login {
+            color: #00d4ff;
+            border: 1px solid #00d4ff;
+            background: transparent;
+            margin-right: 8px;
+        }
+
+        .btn-auth.btn-login:hover {
+            background: rgba(0, 212, 255, 0.1);
+        }
+
+        .btn-auth.btn-signup {
+            color: #1a1a2e;
+            border: 1px solid #00d4ff;
+            background: #00d4ff;
+        }
+
+        .btn-auth.btn-signup:hover {
+            background: #00b8e6;
+        }
+
+        .btn-auth.btn-logout {
+            color: #ff6b6b;
+            border: 1px solid #ff6b6b;
+            background: transparent;
+        }
+
+        .btn-auth.btn-logout:hover {
+            background: rgba(255, 107, 107, 0.1);
+        }
     </style>
 </head>
 <body>
-    <h1>Game Arcade</h1>
+    <!-- User Bar: shows login/signup or logged-in user -->
+    <div class="user-bar" id="userBar"></div>
+
+    <h1 style="margin-top: 48px;">Game Arcade</h1>
     <p class="subtitle">A collection of classic browser games. Hover to learn more, click to play!</p>
 
     <div class="games-grid">
@@ -161,5 +229,27 @@
         -->
 
     </div>
+
+    <script src="auth/auth.js"></script>
+    <script>
+    (function () {
+        const userBar = document.getElementById('userBar');
+        const user = Auth.getCurrentUser();
+
+        if (user) {
+            userBar.innerHTML =
+                '<span class="user-greeting">Hello, <a href="auth/profile.html" style="color:#00d4ff;text-decoration:none;font-weight:bold;">' + user.username + '</a></span>' +
+                '<button class="btn-auth btn-logout" id="logoutBtn">Log Out</button>';
+            document.getElementById('logoutBtn').addEventListener('click', function () {
+                Auth.logout();
+                window.location.reload();
+            });
+        } else {
+            userBar.innerHTML =
+                '<a href="auth/login.html" class="btn-auth btn-login">Log In</a>' +
+                '<a href="auth/signup.html" class="btn-auth btn-signup">Sign Up</a>';
+        }
+    })();
+    </script>
 </body>
 </html>

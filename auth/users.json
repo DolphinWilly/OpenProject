@@ -1,0 +1,10 @@
+{
+  "_schema": {
+    "username": "string (required, unique)",
+    "password": "string (required, min 6 chars)",
+    "email": "string (required, valid email)",
+    "dateOfBirth": "string (required, YYYY-MM-DD)",
+    "gender": "string (optional: male | female | other | prefer-not-to-say)"
+  },
+  "users": []
+}
