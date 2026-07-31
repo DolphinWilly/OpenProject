@@ -238,7 +238,7 @@
 
         if (user) {
             userBar.innerHTML =
-                '<span class="user-greeting">Hello, <strong>' + user.username + '</strong></span>' +
+                '<span class="user-greeting">Hello, <a href="auth/profile.html" style="color:#00d4ff;text-decoration:none;font-weight:bold;">' + user.username + '</a></span>' +
                 '<button class="btn-auth btn-logout" id="logoutBtn">Log Out</button>';
             document.getElementById('logoutBtn').addEventListener('click', function () {
                 Auth.logout();

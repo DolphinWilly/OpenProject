@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile — Game Arcade</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #1a1a2e;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #eee;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        a.back-link {
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            color: #00d4ff;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        a.back-link:hover {
+            text-decoration: underline;
+        }
+
+        .profile-container {
+            max-width: 800px;
+            margin: 40px auto 0;
+        }
+
+        /* ─── Profile Header ─────────────────────────────────── */
+        .profile-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 28px;
+            background: #16213e;
+            border: 1px solid #0f3460;
+            border-radius: 12px;
+            padding: 28px;
+            margin-bottom: 24px;
+        }
+
+        .avatar-section {
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: #0f0f23;
+            border: 3px solid #0f3460;
+            object-fit: cover;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            color: #555;
+            overflow: hidden;
+        }
+
+        .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .avatar-upload-btn {
+            font-size: 0.75rem;
+            color: #00d4ff;
+            cursor: pointer;
+            background: none;
+            border: 1px solid #0f3460;
+            border-radius: 12px;
+            padding: 4px 12px;
+            transition: border-color 0.2s;
+        }
+
+        .avatar-upload-btn:hover {
+            border-color: #00d4ff;
+        }
+
+        .profile-info {
+            flex: 1;
+        }
+
+        .profile-info h1 {
+            color: #00d4ff;
+            font-size: 1.6rem;
+            margin-bottom: 12px;
+        }
+
+        .profile-details {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .detail-item {
+            font-size: 0.85rem;
+            color: #aaa;
+        }
+
+        .detail-item span {
+            color: #eee;
+        }
+
+        /* ─── Bio ────────────────────────────────────────────── */
+        .bio-section {
+            margin-top: 12px;
+        }
+
+        .bio-section label {
+            font-size: 0.8rem;
+            color: #aaa;
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .bio-display {
+            font-size: 0.9rem;
+            color: #ccc;
+            line-height: 1.5;
+            min-height: 20px;
+        }
+
+        .bio-display.empty {
+            color: #555;
+            font-style: italic;
+        }
+
+        .bio-edit {
+            display: none;
+        }
+
+        .bio-textarea {
+            width: 100%;
+            padding: 10px;
+            background: #0f0f23;
+            border: 1px solid #0f3460;
+            border-radius: 8px;
+            color: #eee;
+            font-size: 0.9rem;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 60px;
+            outline: none;
+        }
+
+        .bio-textarea:focus {
+            border-color: #00d4ff;
+        }
+
+        .bio-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .btn-sm {
+            padding: 5px 14px;
+            font-size: 0.8rem;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-sm.primary {
+            background: #00d4ff;
+            color: #1a1a2e;
+        }
+
+        .btn-sm.primary:hover {
+            background: #00b8e6;
+        }
+
+        .btn-sm.secondary {
+            background: transparent;
+            color: #aaa;
+            border: 1px solid #0f3460;
+        }
+
+        .btn-sm.secondary:hover {
+            border-color: #aaa;
+        }
+
+        .btn-edit-bio {
+            font-size: 0.75rem;
+            color: #00d4ff;
+            cursor: pointer;
+            background: none;
+            border: none;
+            margin-left: 8px;
+        }
+
+        .btn-edit-bio:hover {
+            text-decoration: underline;
+        }
+
+        /* ─── Section Panels ─────────────────────────────────── */
+        .section-panel {
+            background: #16213e;
+            border: 1px solid #0f3460;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .section-panel h2 {
+            font-size: 1.2rem;
+            color: #00d4ff;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .empty-state {
+            color: #555;
+            font-size: 0.9rem;
+            font-style: italic;
+            text-align: center;
+            padding: 20px;
+        }
+
+        /* ─── Friends List ────────────────────────────────────── */
+        .friends-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .friend-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            padding: 12px 8px;
+            background: #0f0f23;
+            border-radius: 8px;
+            border: 1px solid #0f3460;
+        }
+
+        .friend-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: #16213e;
+            border: 2px solid #0f3460;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: #555;
+            overflow: hidden;
+        }
+
+        .friend-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .friend-name {
+            font-size: 0.8rem;
+            color: #ccc;
+            text-align: center;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 100%;
+        }
+
+        .friends-expanded {
+            display: none;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #0f3460;
+        }
+
+        .friends-expanded.show {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .btn-expand {
+            display: block;
+            margin: 12px auto 0;
+            padding: 6px 20px;
+            font-size: 0.8rem;
+            color: #00d4ff;
+            background: transparent;
+            border: 1px solid #0f3460;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .btn-expand:hover {
+            border-color: #00d4ff;
+        }
+
+        .btn-add-friend {
+            font-size: 0.75rem;
+            padding: 4px 12px;
+            border-radius: 12px;
+            border: 1px solid #0f3460;
+            background: none;
+            color: #00d4ff;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .btn-add-friend:hover {
+            border-color: #00d4ff;
+        }
+
+        /* ─── Game History ────────────────────────────────────── */
+        .history-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .history-card {
+            background: #0f0f23;
+            border: 1px solid #0f3460;
+            border-radius: 10px;
+            overflow: hidden;
+            transition: border-color 0.2s;
+        }
+
+        .history-card:hover {
+            border-color: #0f3460;
+        }
+
+        .history-card .card-screenshot {
+            width: 100%;
+            aspect-ratio: 4 / 3;
+            background: #16213e;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #555;
+            font-size: 0.8rem;
+        }
+
+        .history-card .card-screenshot img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .history-card .card-body {
+            padding: 12px;
+        }
+
+        .history-card .card-game-name {
+            font-size: 0.95rem;
+            color: #eee;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .history-card .card-score {
+            font-size: 0.8rem;
+            color: #aaa;
+        }
+
+        .history-card .card-score strong {
+            color: #00d4ff;
+        }
+
+        .history-card .card-date {
+            font-size: 0.7rem;
+            color: #555;
+            margin-top: 4px;
+        }
+
+        /* ─── Hidden File Input ──────────────────────────────── */
+        #avatarInput {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <a href="../index.html" class="back-link">&larr; Back to Arcade</a>
+
+    <div class="profile-container">
+        <!-- Profile Header -->
+        <div class="profile-header">
+            <div class="avatar-section">
+                <div class="avatar" id="avatarDisplay">?</div>
+                <button class="avatar-upload-btn" id="avatarUploadBtn">Change Photo</button>
+                <input type="file" id="avatarInput" accept="image/*">
+            </div>
+            <div class="profile-info">
+                <h1 id="profileUsername">—</h1>
+                <div class="profile-details">
+                    <div class="detail-item">Email: <span id="profileEmail">—</span></div>
+                    <div class="detail-item">Birthday: <span id="profileDob">—</span></div>
+                    <div class="detail-item" id="profileGenderItem" style="display:none">Gender: <span id="profileGender">—</span></div>
+                </div>
+                <div class="bio-section">
+                    <span style="font-size:0.8rem;color:#aaa;">Bio</span> <button class="btn-edit-bio" id="editBioBtn">edit</button>
+                    <div class="bio-display" id="bioDisplay"></div>
+                    <div class="bio-edit" id="bioEdit">
+                        <textarea class="bio-textarea" id="bioTextarea" maxlength="200" placeholder="Write a short bio..."></textarea>
+                        <div class="bio-actions">
+                            <button class="btn-sm primary" id="saveBioBtn">Save</button>
+                            <button class="btn-sm secondary" id="cancelBioBtn">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Friends Section -->
+        <div class="section-panel">
+            <h2>Friends <button class="btn-add-friend" id="addFriendBtn">+ Add</button></h2>
+            <div id="friendsContent">
+                <div class="empty-state" id="friendsEmpty">No friends yet. Add some!</div>
+                <div class="friends-grid" id="friendsGrid"></div>
+                <div class="friends-expanded" id="friendsExpanded"></div>
+                <button class="btn-expand" id="friendsExpandBtn" style="display:none">Show All</button>
+            </div>
+        </div>
+
+        <!-- Gaming History Section -->
+        <div class="section-panel">
+            <h2>Gaming History</h2>
+            <div id="historyContent">
+                <div class="empty-state" id="historyEmpty">No games played yet. Go play something!</div>
+                <div class="history-grid" id="historyGrid"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="auth.js"></script>
+    <script>
+    (function () {
+        // Redirect if not logged in
+        if (!Auth.isLoggedIn()) {
+            window.location.href = 'login.html';
+            return;
+        }
+
+        const currentUser = Auth.getCurrentUser();
+        const profile = Auth.getProfile(currentUser.username);
+
+        if (!profile) {
+            window.location.href = 'login.html';
+            return;
+        }
+
+        // ─── Populate Profile Header ──────────────────────────
+        document.getElementById('profileUsername').textContent = profile.username;
+        document.getElementById('profileEmail').textContent = profile.email;
+        document.getElementById('profileDob').textContent = formatDate(profile.dateOfBirth);
+
+        if (profile.gender) {
+            document.getElementById('profileGenderItem').style.display = '';
+            document.getElementById('profileGender').textContent =
+                profile.gender.charAt(0).toUpperCase() + profile.gender.slice(1);
+        }
+
+        // Avatar
+        renderAvatar(profile.avatar);
+
+        // ─── Avatar Upload ────────────────────────────────────
+        const avatarInput = document.getElementById('avatarInput');
+        document.getElementById('avatarUploadBtn').addEventListener('click', function () {
+            avatarInput.click();
+        });
+
+        avatarInput.addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (file.size > 500000) {
+                alert('Image must be under 500KB.');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function (ev) {
+                const dataUrl = ev.target.result;
+                Auth.updateProfile({ avatar: dataUrl });
+                renderAvatar(dataUrl);
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // ─── Bio Edit ─────────────────────────────────────────
+        const bioDisplay = document.getElementById('bioDisplay');
+        const bioEdit = document.getElementById('bioEdit');
+        const bioTextarea = document.getElementById('bioTextarea');
+
+        // Render bio now that bioDisplay is available
+        renderBio(profile.bio);
+
+        document.getElementById('editBioBtn').addEventListener('click', function () {
+            bioTextarea.value = profile.bio || '';
+            bioDisplay.style.display = 'none';
+            bioEdit.style.display = 'block';
+            bioTextarea.focus();
+        });
+
+        document.getElementById('cancelBioBtn').addEventListener('click', function () {
+            bioEdit.style.display = 'none';
+            bioDisplay.style.display = 'block';
+        });
+
+        document.getElementById('saveBioBtn').addEventListener('click', function () {
+            const newBio = bioTextarea.value.trim();
+            Auth.updateProfile({ bio: newBio });
+            profile.bio = newBio;
+            renderBio(newBio);
+            bioEdit.style.display = 'none';
+            bioDisplay.style.display = 'block';
+        });
+
+        // ─── Friends ──────────────────────────────────────────
+        renderFriends(profile.friends);
+
+        document.getElementById('addFriendBtn').addEventListener('click', function () {
+            const friendName = prompt('Enter friend\'s username:');
+            if (!friendName) return;
+            const result = Auth.addFriend(friendName);
+            if (result.success) {
+                profile.friends.push(friendName.trim());
+                renderFriends(profile.friends);
+            } else {
+                alert(result.error);
+            }
+        });
+
+        document.getElementById('friendsExpandBtn').addEventListener('click', function () {
+            const expanded = document.getElementById('friendsExpanded');
+            if (expanded.classList.contains('show')) {
+                expanded.classList.remove('show');
+                this.textContent = 'Show All';
+            } else {
+                expanded.classList.add('show');
+                this.textContent = 'Show Less';
+            }
+        });
+
+        // ─── Game History ─────────────────────────────────────
+        renderHistory(profile.gameHistory);
+
+        // ─── Render Helpers ───────────────────────────────────
+
+        function renderAvatar(avatarData) {
+            const el = document.getElementById('avatarDisplay');
+            if (avatarData) {
+                el.innerHTML = '<img src="' + avatarData + '" alt="Avatar">';
+            } else {
+                el.innerHTML = profile.username.charAt(0).toUpperCase();
+            }
+        }
+
+        function renderBio(bio) {
+            if (bio) {
+                bioDisplay.textContent = bio;
+                bioDisplay.classList.remove('empty');
+            } else {
+                bioDisplay.textContent = 'No bio yet. Click edit to add one.';
+                bioDisplay.classList.add('empty');
+            }
+        }
+
+        function renderFriends(friends) {
+            const grid = document.getElementById('friendsGrid');
+            const expanded = document.getElementById('friendsExpanded');
+            const expandBtn = document.getElementById('friendsExpandBtn');
+            const emptyState = document.getElementById('friendsEmpty');
+
+            grid.innerHTML = '';
+            expanded.innerHTML = '';
+
+            if (!friends || friends.length === 0) {
+                emptyState.style.display = 'block';
+                grid.style.display = 'none';
+                expandBtn.style.display = 'none';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+            grid.style.display = 'grid';
+
+            // Show first 6 in main grid
+            const visible = friends.slice(0, 6);
+            const rest = friends.slice(6);
+
+            visible.forEach(function (name) {
+                grid.appendChild(createFriendCard(name));
+            });
+
+            // Show expand button and rest in expanded section
+            if (rest.length > 0) {
+                expandBtn.style.display = 'block';
+                rest.forEach(function (name) {
+                    expanded.appendChild(createFriendCard(name));
+                });
+            } else {
+                expandBtn.style.display = 'none';
+            }
+        }
+
+        function createFriendCard(username) {
+            const friendProfile = Auth.getProfile(username);
+            const card = document.createElement('div');
+            card.className = 'friend-card';
+
+            const avatarEl = document.createElement('div');
+            avatarEl.className = 'friend-avatar';
+            if (friendProfile && friendProfile.avatar) {
+                avatarEl.innerHTML = '<img src="' + friendProfile.avatar + '" alt="' + username + '">';
+            } else {
+                avatarEl.textContent = username.charAt(0).toUpperCase();
+            }
+
+            const nameEl = document.createElement('div');
+            nameEl.className = 'friend-name';
+            nameEl.textContent = username;
+
+            card.appendChild(avatarEl);
+            card.appendChild(nameEl);
+            return card;
+        }
+
+        function renderHistory(history) {
+            const grid = document.getElementById('historyGrid');
+            const emptyState = document.getElementById('historyEmpty');
+
+            grid.innerHTML = '';
+
+            if (!history || history.length === 0) {
+                emptyState.style.display = 'block';
+                grid.style.display = 'none';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+            grid.style.display = 'grid';
+
+            // Show most recent first
+            var sorted = history.slice().reverse();
+            sorted.forEach(function (entry) {
+                grid.appendChild(createHistoryCard(entry));
+            });
+        }
+
+        function createHistoryCard(entry) {
+            const card = document.createElement('div');
+            card.className = 'history-card';
+
+            const screenshotEl = document.createElement('div');
+            screenshotEl.className = 'card-screenshot';
+            if (entry.screenshot) {
+                screenshotEl.innerHTML = '<img src="' + entry.screenshot + '" alt="' + entry.game + ' screenshot">';
+            } else {
+                screenshotEl.textContent = 'No screenshot';
+            }
+
+            const body = document.createElement('div');
+            body.className = 'card-body';
+
+            const nameEl = document.createElement('div');
+            nameEl.className = 'card-game-name';
+            nameEl.textContent = entry.game;
+
+            const scoreEl = document.createElement('div');
+            scoreEl.className = 'card-score';
+            scoreEl.innerHTML = 'Score: <strong>' + entry.score + '</strong>';
+
+            const dateEl = document.createElement('div');
+            dateEl.className = 'card-date';
+            dateEl.textContent = formatDate(entry.playedAt);
+
+            body.appendChild(nameEl);
+            body.appendChild(scoreEl);
+            body.appendChild(dateEl);
+
+            card.appendChild(screenshotEl);
+            card.appendChild(body);
+            return card;
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '—';
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return dateStr;
+            return d.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+            });
+        }
+    })();
+    </script>
+</body>
+</html>

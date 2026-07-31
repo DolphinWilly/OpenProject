@@ -130,6 +130,119 @@ const Auth = (function () {
         return getCurrentUser() !== null;
     }
 
+    // ─── Profile ──────────────────────────────────────────────
+
+    /**
+     * Get the full profile for a user (including avatar, bio, friends, gameHistory).
+     * @param {string} username
+     * @returns {object|null}
+     */
+    function getProfile(username) {
+        const users = getUsers();
+        const user = users.find(u => u.username.toLowerCase() === username.toLowerCase());
+        if (!user) return null;
+        return {
+            username: user.username,
+            email: user.email,
+            dateOfBirth: user.dateOfBirth,
+            gender: user.gender || '',
+            avatar: user.avatar || '',
+            bio: user.bio || '',
+            friends: user.friends || [],
+            gameHistory: user.gameHistory || [],
+            createdAt: user.createdAt,
+        };
+    }
+
+    /**
+     * Update profile fields for the currently logged-in user.
+     * Allowed fields: avatar, bio
+     * @param {object} updates - { avatar?, bio? }
+     * @returns {{ success: boolean, error?: string }}
+     */
+    function updateProfile(updates) {
+        const session = getCurrentUser();
+        if (!session) return { success: false, error: 'Not logged in.' };
+
+        const users = getUsers();
+        const index = users.findIndex(
+            u => u.username.toLowerCase() === session.username.toLowerCase()
+        );
+        if (index === -1) return { success: false, error: 'User not found.' };
+
+        if (updates.avatar !== undefined) users[index].avatar = updates.avatar;
+        if (updates.bio !== undefined) users[index].bio = updates.bio;
+
+        saveUsers(users);
+
+        // Refresh session
+        setSession(users[index]);
+        return { success: true };
+    }
+
+    /**
+     * Add a friend by username.
+     * @param {string} friendUsername
+     * @returns {{ success: boolean, error?: string }}
+     */
+    function addFriend(friendUsername) {
+        const session = getCurrentUser();
+        if (!session) return { success: false, error: 'Not logged in.' };
+
+        const users = getUsers();
+        const index = users.findIndex(
+            u => u.username.toLowerCase() === session.username.toLowerCase()
+        );
+        if (index === -1) return { success: false, error: 'User not found.' };
+
+        // Check friend exists
+        const friendExists = users.some(
+            u => u.username.toLowerCase() === friendUsername.trim().toLowerCase()
+        );
+        if (!friendExists) return { success: false, error: 'Friend username not found.' };
+
+        if (friendUsername.trim().toLowerCase() === session.username.toLowerCase()) {
+            return { success: false, error: "You can't add yourself." };
+        }
+
+        const friends = users[index].friends || [];
+        if (friends.some(f => f.toLowerCase() === friendUsername.trim().toLowerCase())) {
+            return { success: false, error: 'Already in your friends list.' };
+        }
+
+        friends.push(friendUsername.trim());
+        users[index].friends = friends;
+        saveUsers(users);
+        return { success: true };
+    }
+
+    /**
+     * Record a game session in history.
+     * @param {object} entry - { game, score, screenshot? }
+     * @returns {{ success: boolean, error?: string }}
+     */
+    function addGameHistory(entry) {
+        const session = getCurrentUser();
+        if (!session) return { success: false, error: 'Not logged in.' };
+
+        const users = getUsers();
+        const index = users.findIndex(
+            u => u.username.toLowerCase() === session.username.toLowerCase()
+        );
+        if (index === -1) return { success: false, error: 'User not found.' };
+
+        const history = users[index].gameHistory || [];
+        history.push({
+            game: entry.game,
+            score: entry.score || 0,
+            screenshot: entry.screenshot || '',
+            playedAt: new Date().toISOString(),
+        });
+        users[index].gameHistory = history;
+        saveUsers(users);
+        return { success: true };
+    }
+
     // ─── Internal ──────────────────────────────────────────────
 
     function setSession(user) {
@@ -139,6 +252,8 @@ const Auth = (function () {
             email: user.email,
             dateOfBirth: user.dateOfBirth,
             gender: user.gender,
+            avatar: user.avatar || '',
+            bio: user.bio || '',
         };
         localStorage.setItem(SESSION_KEY, JSON.stringify(session));
     }
@@ -151,5 +266,9 @@ const Auth = (function () {
         logout,
         getCurrentUser,
         isLoggedIn,
+        getProfile,
+        updateProfile,
+        addFriend,
+        addGameHistory,
     };
 })();
